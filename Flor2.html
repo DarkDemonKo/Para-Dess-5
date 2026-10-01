@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Para ti, Dess</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --paper-bg: #fdfbf7;
+            --ink-color: #2c2825;
+            --accent-color: #d4a373;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--paper-bg);
+            color: var(--ink-color);
+            margin: 0;
+            overflow-x: hidden;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .font-serif {
+            font-family: 'Playfair Display', serif;
+        }
+        
+        .font-sans {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .paper-texture {
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+            background-color: var(--paper-bg);
+        }
+
+        .letter-container {
+            background: linear-gradient(135deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.5) 100%);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03), inset 0 0 0 1px rgba(255,255,255,0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .typewriter-text {
+            white-space: pre-wrap;
+            line-height: 1.75;
+            word-break: break-word;
+        }
+
+        .typewriter-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1.15em;
+            background-color: var(--accent-color);
+            vertical-align: middle;
+            animation: blink 1s step-end infinite;
+            margin-left: 2px;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .start-btn {
+            background-color: var(--ink-color);
+            color: #fff;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            touch-action: manipulation;
+        }
+        
+        .start-btn:hover, .start-btn:active {
+            background-color: var(--accent-color);
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 12px 24px rgba(212, 163, 115, 0.35);
+        }
+
+        /* Subtle mathematical grid for canvas background */
+        .canvas-bg {
+            background-image: 
+                linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-position: center center;
+        }
+    </style>
+</head>
+<body class="min-h-screen paper-texture flex flex-col lg:flex-row overflow-x-hidden">
+
+    <!-- Fullscreen Intro Screen -->
+    <div id="intro-screen" class="fixed inset-0 z-50 flex flex-col justify-center items-center bg-[#fdfbf7] p-6 text-center transition-opacity duration-1000">
+        <h1 class="font-serif text-3xl sm:text-4xl md:text-5xl mb-4 text-[#2c2825]">Una pequeña sorpresa...</h1>
+        <p class="font-sans text-sm sm:text-base text-[#7c7267] mb-8 max-w-xs sm:max-w-md">Para alguien muy especial</p>
+        <button id="startBtn" class="start-btn font-sans px-8 py-3.5 rounded-full text-base sm:text-lg tracking-wide shadow-lg">
+            Leer Carta ✨
+        </button>
+    </div>
+
+    <!-- Main View: Canvas (Top on mobile, Right on desktop) -->
+    <div class="w-full lg:w-1/2 h-[42vh] sm:h-[46vh] lg:h-screen relative flex justify-center items-center border-b lg:border-b-0 lg:border-l border-[rgba(0,0,0,0.05)] canvas-bg order-1 lg:order-2 flex-shrink-0">
+        <canvas id="mathCanvas" class="w-full h-full block"></canvas>
+    </div>
+
+    <!-- Main View: Letter (Bottom on mobile, Left on desktop) -->
+    <div class="w-full lg:w-1/2 min-h-[58vh] lg:h-screen p-4 sm:p-8 md:p-12 lg:p-16 flex flex-col justify-center items-center lg:items-start relative z-10 order-2 lg:order-1 lg:overflow-y-auto">
+        <div class="letter-container w-full max-w-xl rounded-2xl p-6 sm:p-8 md:p-12 relative opacity-0 transition-opacity duration-1000 my-auto shadow-sm" id="letter-content">
+            <p id="typed-text" class="typewriter-text font-serif text-[#4a443e] text-[0.95rem] sm:text-base md:text-lg leading-relaxed"></p><span id="cursor" class="typewriter-cursor"></span>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // ✏️ MENSAJE DE LA CARTA
+        // ==========================================
+        const letterMessage = `Hola Dess,
+
+Quería darte algo único. Esta flor no es solo un dibujo, está construida con matemáticas puras.
+
+Ecuaciones polares, senos, cosenos y la secuencia de Fibonacci se unieron para crear esto pieza por pieza.
+
+Al igual que en las matemáticas, a veces las cosas más complejas crean los resultados más hermosos.
+
+Espero que te guste.
+
+Con cariño,
+Ivan`;
+
+        // ==========================================
+        // CONFIGURACIÓN DEL CANVAS Y VARIABLES
+        // ==========================================
+        const canvas = document.getElementById('mathCanvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const introScreen = document.getElementById('intro-screen');
+        const letterContent = document.getElementById('letter-content');
+        const typedText = document.getElementById('typed-text');
+        const cursor = document.getElementById('cursor');
+
+        let scale = 40; 
+        let cx = 0;
+        let cy = 0;
+        let animationStartTime = 0;
+        let isAnimating = false;
+
+        // Tiempos de animación (en milisegundos)
+        const TIMES = {
+            stem: 2500,
+            leaves: 2000,
+            outerPetals: 3000,
+            innerPetals: 3000,
+            center: 1000,
+            seeds: 3500
+        };
+
+        const PHASES = {
+            stemEnd: TIMES.stem,
+            leavesEnd: TIMES.stem + TIMES.leaves,
+            outerEnd: TIMES.stem + TIMES.leaves + TIMES.outerPetals,
+            innerEnd: TIMES.stem + TIMES.leaves + TIMES.outerPetals + TIMES.innerPetals,
+            centerEnd: TIMES.stem + TIMES.leaves + TIMES.outerPetals + TIMES.innerPetals + TIMES.center,
+            seedsEnd: TIMES.stem + TIMES.leaves + TIMES.outerPetals + TIMES.innerPetals + TIMES.center + TIMES.seeds
+        };
+
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            if (!container) return;
+
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            const dpr = window.devicePixelRatio || 1;
+
+            // Soporte Retina / Alta resolución en celulares
+            canvas.width = Math.floor(width * dpr);
+            canvas.height = Math.floor(height * dpr);
+            canvas.style.width = width + 'px';
+            canvas.style.height = height + 'px';
+
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(dpr, dpr);
+
+            // Escala adaptativa para que la flor completa encaje perfectamente con márgenes
+            scale = Math.min(width / 11, height / 15.5); 
+            cx = width / 2;
+            
+            // Centrado vertical compensando el desplazamiento del tallo y pétalos
+            cy = (height / 2) - (-0.45 * scale);
+
+            if (!isAnimating && animationStartTime > 0) {
+                drawFrame(PHASES.seedsEnd); 
+            }
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(resizeCanvas, 150);
+        });
+
+        // Conversión de coordenadas matemáticas a píxeles
+        function mapX(x) { return cx + x * scale; }
+        function mapY(y) { return cy - y * scale; }
+
+        function drawStem(progress) {
+            ctx.beginPath();
+            ctx.strokeStyle = '#79C9A1';
+            ctx.lineWidth = Math.max(2.5, 4 * (scale / 40));
+            ctx.lineCap = 'round';
+            
+            const startY = -7.5;
+            const endY = 1.2;
+            const currentY = startY + (endY - startY) * progress;
+
+            for (let y = startY; y <= currentY; y += 0.05) {
+                const x = 0.4 * Math.sin(0.8 * (y - 2));
+                if (y === startY) ctx.moveTo(mapX(x), mapY(y));
+                else ctx.lineTo(mapX(x), mapY(y));
+            }
+            ctx.stroke();
+        }
+
+        function drawLeaves(progress) {
+            ctx.fillStyle = 'rgba(183, 228, 207, 0.9)';
+            ctx.strokeStyle = '#79C9A1';
+            ctx.lineWidth = Math.max(1.8, 2.5 * (scale / 40));
+
+            const drawLeaf = (alpha, tStart, tEnd, yOffset) => {
+                const currentTEnd = tStart + (tEnd - tStart) * progress;
+                ctx.beginPath();
+                for (let t = tStart; t <= currentTEnd; t += 0.02) {
+                    const r = 2.8 * Math.cos(3 * (t - alpha));
+                    const x = r * Math.cos(t);
+                    const y = (r * Math.sin(t)) + yOffset;
+                    if (t === tStart) ctx.moveTo(mapX(x), mapY(y));
+                    else ctx.lineTo(mapX(x), mapY(y));
+                }
+                if (progress >= 1) {
+                    ctx.closePath();
+                    ctx.fill();
+                }
+                ctx.stroke();
+            };
+
+            // Hoja Derecha
+            drawLeaf(Math.PI / 6, 0, Math.PI / 3, -1);
+            // Hoja Izquierda
+            drawLeaf(5 * Math.PI / 6, 2 * Math.PI / 3, Math.PI, -2.5);
+        }
+
+        function drawPetals(progress, type) {
+            const isOuter = type === 'outer';
+            const multiplier = isOuter ? 4.5 : 3.2;
+            const fillColor = isOuter ? 'rgba(253, 216, 53, 0.8)' : 'rgba(255, 160, 0, 0.8)';
+            const strokeColor = isOuter ? '#F57F17' : '#E65100';
+            const mathFunc = isOuter ? Math.cos : Math.sin;
+
+            ctx.lineWidth = Math.max(1.5, 2 * (scale / 40));
+            ctx.strokeStyle = strokeColor;
+            ctx.fillStyle = fillColor;
+
+            const endT = 2 * Math.PI * progress;
+
+            ctx.beginPath();
+            for (let t = 0; t <= endT; t += 0.02) {
+                const r = multiplier * Math.abs(mathFunc(4 * t));
+                const x = r * Math.cos(t);
+                const y = (r * Math.sin(t)) + 2;
+                if (t === 0) ctx.moveTo(mapX(x), mapY(y));
+                else ctx.lineTo(mapX(x), mapY(y));
+            }
+
+            if (progress >= 1) {
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.stroke();
+        }
+
+        function drawCenter(progress) {
+            ctx.beginPath();
+            ctx.arc(mapX(0), mapY(2), 1.2 * scale, 0, 2 * Math.PI);
+            
+            ctx.fillStyle = `rgba(109, 76, 65, ${progress})`;
+            ctx.fill();
+            
+            ctx.lineWidth = Math.max(1.2, 1.5 * (scale / 40));
+            ctx.strokeStyle = `rgba(90, 77, 88, ${progress})`;
+            ctx.stroke();
+        }
+
+        function drawSeeds(progress) {
+            ctx.fillStyle = '#FFF176'; 
+            const totalSeeds = 80;
+            const currentSeeds = Math.floor(totalSeeds * progress);
+            const radius = Math.max(1.8, 2.5 * (scale / 40));
+
+            for (let n = 1; n <= currentSeeds; n++) {
+                const r = 0.12 * Math.sqrt(n);
+                const A = 137.5 * (Math.PI / 180) * n; 
+                
+                const x = r * Math.cos(A);
+                const y = (r * Math.sin(A)) + 2; 
+                
+                ctx.beginPath();
+                ctx.arc(mapX(x), mapY(y), radius, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        }
+
+        function drawFrame(elapsed) {
+            // Limpieza completa del canvas
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.restore();
+
+            // Fase 1: Tallo
+            if (elapsed > 0) {
+                let p = Math.min(elapsed / TIMES.stem, 1);
+                drawStem(p);
+            }
+            // Fase 2: Hojas
+            if (elapsed > PHASES.stemEnd) {
+                let p = Math.min((elapsed - PHASES.stemEnd) / TIMES.leaves, 1);
+                drawLeaves(p);
+            }
+            // Fase 3: Pétalos Externos
+            if (elapsed > PHASES.leavesEnd) {
+                let p = Math.min((elapsed - PHASES.leavesEnd) / TIMES.outerPetals, 1);
+                drawPetals(p, 'outer');
+            }
+            // Fase 4: Pétalos Internos
+            if (elapsed > PHASES.outerEnd) {
+                let p = Math.min((elapsed - PHASES.outerEnd) / TIMES.innerPetals, 1);
+                drawPetals(p, 'inner');
+            }
+            // Fase 5: Centro
+            if (elapsed > PHASES.innerEnd) {
+                let p = Math.min((elapsed - PHASES.innerEnd) / TIMES.center, 1);
+                drawCenter(p);
+            }
+            // Fase 6: Semillas
+            if (elapsed > PHASES.centerEnd) {
+                let p = Math.min((elapsed - PHASES.centerEnd) / TIMES.seeds, 1);
+                drawSeeds(p);
+            }
+        }
+
+        function animateLoop(timestamp) {
+            if (!animationStartTime) animationStartTime = timestamp;
+            const elapsed = timestamp - animationStartTime;
+
+            drawFrame(elapsed);
+
+            if (elapsed < PHASES.seedsEnd) {
+                requestAnimationFrame(animateLoop);
+            } else {
+                isAnimating = false;
+            }
+        }
+
+        function typeLetter() {
+            let index = 0;
+            const totalAnimationTime = PHASES.seedsEnd;
+            const typingSpeed = totalAnimationTime / letterMessage.length; 
+
+            function typeNextChar() {
+                if (index < letterMessage.length) {
+                    typedText.textContent += letterMessage.charAt(index);
+                    index++;
+                    
+                    // En móviles, asegurar suavemente que el cursor se mantenga a la vista si se desborda
+                    if (window.innerWidth < 1024 && index % 12 === 0) {
+                        cursor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+
+                    setTimeout(typeNextChar, typingSpeed);
+                } else {
+                    setTimeout(() => { cursor.style.display = 'none'; }, 2000);
+                }
+            }
+            
+            setTimeout(typeNextChar, 500);
+        }
+
+        startBtn.addEventListener('click', () => {
+            introScreen.style.opacity = '0';
+            introScreen.style.pointerEvents = 'none';
+            
+            setTimeout(() => {
+                introScreen.style.display = 'none';
+                letterContent.style.opacity = '1';
+                
+                isAnimating = true;
+                requestAnimationFrame(animateLoop);
+                typeLetter();
+            }, 1000);
+        });
+
+        // Inicializar tamaño del canvas
+        resizeCanvas();
+    </script>
+</body>
+</html>
